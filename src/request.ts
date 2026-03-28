@@ -4,7 +4,7 @@ import {baseURL} from './util'
 import {resolve} from 'path'
 import {createReadStream} from 'fs'
 import axios from 'axios'
-import {InitialUploadDetails, UploadDetails} from './types.d'
+import {CreatedVersionDetails, InitialUploadDetails, UploadDetails} from './types.d'
 
 export async function createUpload(
   xpiPath: string,
@@ -31,30 +31,72 @@ export async function tryUpdateExtension(
   guid: string,
   uuid: string,
   token: string,
+  approvalNotes?: string,
   srcPath?: string
 ): Promise<boolean> {
   const details = await getUploadDetails(uuid, token)
-  if (!details.valid) {
+  if (!details.processed) {
     return false
   }
 
-  const url = `${baseURL}/addons/addon/${guid}/versions/`
-  const body = new FormData()
-  body.append('upload', uuid)
-  if (srcPath) {
-    core.debug(`Uploading ${srcPath}`)
-    body.append('source', createReadStream(resolve(srcPath)))
+  if (!details.valid) {
+    throw new Error('Extension validation failed')
   }
 
-  core.debug(`Updating extension ${guid} with ${uuid}`)
+  const versionDetails = await createVersion(guid, uuid, token, approvalNotes)
+
+  if (srcPath) {
+    await uploadSource(guid, versionDetails.id, srcPath, token)
+  }
+
+  return true
+}
+
+export async function createVersion(
+  guid: string,
+  uuid: string,
+  token: string,
+  approvalNotes?: string
+): Promise<CreatedVersionDetails> {
+  const url = `${baseURL}/addons/addon/${guid}/versions/`
+  const body: {upload: string; approval_notes?: string} = {
+    upload: uuid
+  }
+
+  if (approvalNotes) {
+    body.approval_notes = approvalNotes
+  }
+
+  core.debug(`Creating version for extension ${guid} with ${uuid}`)
   const response = await axios.post(url, body, {
+    headers: {
+      Authorization: `JWT ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+  core.debug(`Create version response: ${JSON.stringify(response.data)}`)
+  return response.data
+}
+
+export async function uploadSource(
+  guid: string,
+  versionId: number,
+  srcPath: string,
+  token: string
+): Promise<void> {
+  const url = `${baseURL}/addons/addon/${guid}/versions/${versionId}/`
+  const body = new FormData()
+
+  core.debug(`Uploading ${srcPath}`)
+  body.append('source', createReadStream(resolve(srcPath)))
+
+  const response = await axios.patch(url, body, {
     headers: {
       ...body.getHeaders(),
       Authorization: `JWT ${token}`
     }
   })
-  core.debug(`Create version response: ${JSON.stringify(response.data)}`)
-  return true
+  core.debug(`Upload source response: ${JSON.stringify(response.data)}`)
 }
 
 export async function getUploadDetails(

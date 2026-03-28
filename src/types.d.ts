@@ -50,3 +50,8 @@ export interface UploadDetails extends BaseUploadDetails {
     ending_tier: number
   }
 }
+
+export interface CreatedVersionDetails {
+  id: number
+  version: string
+}
