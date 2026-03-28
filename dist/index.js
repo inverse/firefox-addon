@@ -49,7 +49,8 @@ async function run() {
         const xpiPath = core.getInput('xpi_path', { required: true });
         const key = core.getInput('api_key', { required: true });
         const secret = core.getInput('api_secret', { required: true });
-        const srcPath = core.getInput('src_path');
+        const approvalNotes = core.getInput('approval_notes') || undefined;
+        const srcPath = core.getInput('src_path') || undefined;
         const token = (0, util_1.generateJWT)(key, secret);
         const uploadDetails = await (0, request_1.createUpload)(xpiPath, token);
         const timeout = 10 * 60 * 1000;
@@ -59,7 +60,7 @@ async function run() {
             if (Date.now() - timeout > startTime) {
                 throw new Error('Extension validation timed out');
             }
-            if (await (0, request_1.tryUpdateExtension)(guid, uploadDetails.uuid, token, srcPath)) {
+            if (await (0, request_1.tryUpdateExtension)(guid, uploadDetails.uuid, token, approvalNotes, srcPath)) {
                 clearInterval(interval);
             }
         }, sleepTime);
@@ -135,6 +136,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createUpload = createUpload;
 exports.tryUpdateExtension = tryUpdateExtension;
+exports.createVersion = createVersion;
+exports.uploadSource = uploadSource;
 exports.getUploadDetails = getUploadDetails;
 const core = __importStar(__nccwpck_require__(7484));
 const form_data_1 = __importDefault(__nccwpck_require__(6454));
@@ -157,27 +160,50 @@ async function createUpload(xpiPath, token) {
     core.debug(`Create upload response: ${JSON.stringify(response.data)}`);
     return response.data;
 }
-async function tryUpdateExtension(guid, uuid, token, srcPath) {
+async function tryUpdateExtension(guid, uuid, token, approvalNotes, srcPath) {
     const details = await getUploadDetails(uuid, token);
-    if (!details.valid) {
+    if (!details.processed) {
         return false;
     }
-    const url = `${util_1.baseURL}/addons/addon/${guid}/versions/`;
-    const body = new form_data_1.default();
-    body.append('upload', uuid);
-    if (srcPath) {
-        core.debug(`Uploading ${srcPath}`);
-        body.append('source', (0, fs_1.createReadStream)((0, path_1.resolve)(srcPath)));
+    if (!details.valid) {
+        throw new Error('Extension validation failed');
     }
-    core.debug(`Updating extension ${guid} with ${uuid}`);
+    const versionDetails = await createVersion(guid, uuid, token, approvalNotes);
+    if (srcPath) {
+        await uploadSource(guid, versionDetails.id, srcPath, token);
+    }
+    return true;
+}
+async function createVersion(guid, uuid, token, approvalNotes) {
+    const url = `${util_1.baseURL}/addons/addon/${guid}/versions/`;
+    const body = {
+        upload: uuid
+    };
+    if (approvalNotes) {
+        body.approval_notes = approvalNotes;
+    }
+    core.debug(`Creating version for extension ${guid} with ${uuid}`);
     const response = await axios_1.default.post(url, body, {
+        headers: {
+            Authorization: `JWT ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    core.debug(`Create version response: ${JSON.stringify(response.data)}`);
+    return response.data;
+}
+async function uploadSource(guid, versionId, srcPath, token) {
+    const url = `${util_1.baseURL}/addons/addon/${guid}/versions/${versionId}/`;
+    const body = new form_data_1.default();
+    core.debug(`Uploading ${srcPath}`);
+    body.append('source', (0, fs_1.createReadStream)((0, path_1.resolve)(srcPath)));
+    const response = await axios_1.default.patch(url, body, {
         headers: {
             ...body.getHeaders(),
             Authorization: `JWT ${token}`
         }
     });
-    core.debug(`Create version response: ${JSON.stringify(response.data)}`);
-    return true;
+    core.debug(`Upload source response: ${JSON.stringify(response.data)}`);
 }
 async function getUploadDetails(uuid, token) {
     const url = `${util_1.baseURL}/addons/upload/${uuid}/`;

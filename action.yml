@@ -14,6 +14,8 @@ inputs:
   api_secret:
     required: true
     description: 'API secret for AMO'
+  approval_notes:
+    description: 'Notes for Mozilla reviewers, attached to the submitted version'
   src_path:
     description: 'path to src zip file for verification. To be used if your extension uses minification, or other build steps that make it difficult to read the code of the xpi.'
 runs:
