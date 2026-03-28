@@ -4,14 +4,15 @@ This is a GitHub Action that allows you to publish to Firefox addon store.
 
 Currently it only supports updating an existing addon, not creating a new one.
 
-
 It is used in [web scrobbler](https://github.com/web-scrobbler/web-scrobbler/blob/master/.github/workflows/deploy.yml), see that for example usage.
+
+This addon is forked from: https://github.com/yayuyokitano/firefox-addon
 
 ## Usage
 
 ```yaml
 steps:
-  - uses: yayuyokitano/firefox-addon@v0.0.3-alpha
+  - uses: inverse/firefox-addon@v0.0.7-alpha
     with:
       api_key: ${{ secrets.AMO_ISSUER }}
       api_secret: ${{ secrets.AMO_SECRET }}
