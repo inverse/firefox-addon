@@ -36,6 +36,7 @@ export async function tryUpdateExtension(
   uuid: string,
   token: string,
   approvalNotes?: string,
+  releaseNotes?: string,
   srcPath?: string
 ): Promise<boolean> {
   const details = await getUploadDetails(uuid, token)
@@ -47,7 +48,13 @@ export async function tryUpdateExtension(
     throw new Error('Extension validation failed')
   }
 
-  const versionDetails = await createVersion(guid, uuid, token, approvalNotes)
+  const versionDetails = await createVersion(
+    guid,
+    uuid,
+    token,
+    approvalNotes,
+    releaseNotes
+  )
 
   if (srcPath) {
     await uploadSource(guid, versionDetails.id, srcPath, token)
@@ -60,15 +67,26 @@ export async function createVersion(
   guid: string,
   uuid: string,
   token: string,
-  approvalNotes?: string
+  approvalNotes?: string,
+  releaseNotes?: string
 ): Promise<CreatedVersionDetails> {
   const url = `${baseURL}/addons/addon/${guid}/versions/`
-  const body: {upload: string; approval_notes?: string} = {
+  const body: {
+    upload: string
+    approval_notes?: string
+    release_notes?: {[locale: string]: string}
+  } = {
     upload: uuid
   }
 
   if (approvalNotes) {
     body.approval_notes = approvalNotes
+  }
+
+  if (releaseNotes) {
+    body.release_notes = {
+      'en-US': releaseNotes
+    }
   }
 
   core.debug(`Creating version for extension ${guid} with ${uuid}`)

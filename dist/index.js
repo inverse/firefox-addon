@@ -50,6 +50,7 @@ async function run() {
         const key = core.getInput('api_key', { required: true });
         const secret = core.getInput('api_secret', { required: true });
         const approvalNotes = core.getInput('approval_notes') || undefined;
+        const releaseNotes = core.getInput('release_notes') || undefined;
         const srcPath = core.getInput('src_path') || undefined;
         const token = (0, util_1.generateJWT)(key, secret);
         const uploadDetails = await (0, request_1.createUpload)(xpiPath, token);
@@ -60,7 +61,7 @@ async function run() {
             if (Date.now() - timeout > startTime) {
                 throw new Error('Extension validation timed out');
             }
-            if (await (0, request_1.tryUpdateExtension)(guid, uploadDetails.uuid, token, approvalNotes, srcPath)) {
+            if (await (0, request_1.tryUpdateExtension)(guid, uploadDetails.uuid, token, approvalNotes, releaseNotes, srcPath)) {
                 clearInterval(interval);
             }
         }, sleepTime);
@@ -160,7 +161,7 @@ async function createUpload(xpiPath, token) {
     core.debug(`Create upload response: ${JSON.stringify(response.data)}`);
     return response.data;
 }
-async function tryUpdateExtension(guid, uuid, token, approvalNotes, srcPath) {
+async function tryUpdateExtension(guid, uuid, token, approvalNotes, releaseNotes, srcPath) {
     const details = await getUploadDetails(uuid, token);
     if (!details.processed) {
         return false;
@@ -168,19 +169,24 @@ async function tryUpdateExtension(guid, uuid, token, approvalNotes, srcPath) {
     if (!details.valid) {
         throw new Error('Extension validation failed');
     }
-    const versionDetails = await createVersion(guid, uuid, token, approvalNotes);
+    const versionDetails = await createVersion(guid, uuid, token, approvalNotes, releaseNotes);
     if (srcPath) {
         await uploadSource(guid, versionDetails.id, srcPath, token);
     }
     return true;
 }
-async function createVersion(guid, uuid, token, approvalNotes) {
+async function createVersion(guid, uuid, token, approvalNotes, releaseNotes) {
     const url = `${util_1.baseURL}/addons/addon/${guid}/versions/`;
     const body = {
         upload: uuid
     };
     if (approvalNotes) {
         body.approval_notes = approvalNotes;
+    }
+    if (releaseNotes) {
+        body.release_notes = {
+            'en-US': releaseNotes
+        };
     }
     core.debug(`Creating version for extension ${guid} with ${uuid}`);
     const response = await axios_1.default.post(url, body, {

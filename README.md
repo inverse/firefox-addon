@@ -21,7 +21,10 @@ steps:
       approval_notes: |
         Built from commit ${{ github.sha }}.
         Reviewer note: bundled vendor files are generated during CI.
-      src_path: web-scrobbler-src.zip # Optional
+      release_notes: |
+        Fixed sync edge cases.
+        Improved startup performance.
+      src_path: web-scrobbler-src.zip
 ```
 
 ## Inputs
@@ -31,6 +34,7 @@ steps:
 - `api_key`: AMO API issuer/key.
 - `api_secret`: AMO API secret.
 - `approval_notes`: Optional reviewer-only notes for the created version.
+- `release_notes`: Optional public release notes for the created version. Sent to AMO as `en-US` release notes.
 - `src_path`: Optional path to a source zip uploaded after version creation.
 
 ## Credentials
