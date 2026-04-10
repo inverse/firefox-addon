@@ -43,13 +43,22 @@ describe('request helpers', () => {
       data: {id: 42, version: '1.0.0'}
     })
 
-    await createVersion('addon-guid', 'upload-uuid', 'token', 'reviewer note')
+    await createVersion(
+      'addon-guid',
+      'upload-uuid',
+      'token',
+      'reviewer note',
+      'Public release note'
+    )
 
     expect(mockedAxios.post).toHaveBeenCalledWith(
       'https://addons.mozilla.org/api/v5/addons/addon/addon-guid/versions/',
       {
         upload: 'upload-uuid',
-        approval_notes: 'reviewer note'
+        approval_notes: 'reviewer note',
+        release_notes: {
+          'en-US': 'Public release note'
+        }
       },
       {
         headers: {
@@ -77,6 +86,7 @@ describe('request helpers', () => {
       'upload-uuid',
       'token',
       'reviewer note',
+      'Public release note',
       'source.zip'
     )
 
@@ -85,7 +95,10 @@ describe('request helpers', () => {
       'https://addons.mozilla.org/api/v5/addons/addon/addon-guid/versions/',
       {
         upload: 'upload-uuid',
-        approval_notes: 'reviewer note'
+        approval_notes: 'reviewer note',
+        release_notes: {
+          'en-US': 'Public release note'
+        }
       },
       {
         headers: {
@@ -127,6 +140,27 @@ describe('request helpers', () => {
     await expect(
       tryUpdateExtension('addon-guid', 'upload-uuid', 'token', 'note')
     ).rejects.toThrow('Extension validation failed')
+  })
+
+  test('createVersion omits optional fields when not provided', async () => {
+    mockedAxios.post.mockResolvedValueOnce({
+      data: {id: 11, version: '1.0.1'}
+    })
+
+    await createVersion('addon-guid', 'upload-uuid', 'token')
+
+    expect(mockedAxios.post).toHaveBeenCalledWith(
+      'https://addons.mozilla.org/api/v5/addons/addon/addon-guid/versions/',
+      {
+        upload: 'upload-uuid'
+      },
+      {
+        headers: {
+          Authorization: 'JWT token',
+          'Content-Type': 'application/json'
+        }
+      }
+    )
   })
 
   test('uploadSource patches an existing version with multipart data', async () => {

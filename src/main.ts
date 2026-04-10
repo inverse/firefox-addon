@@ -9,6 +9,7 @@ async function run(): Promise<void> {
     const key = core.getInput('api_key', {required: true})
     const secret = core.getInput('api_secret', {required: true})
     const approvalNotes = core.getInput('approval_notes') || undefined
+    const releaseNotes = core.getInput('release_notes') || undefined
     const srcPath = core.getInput('src_path') || undefined
 
     const token = generateJWT(key, secret)
@@ -28,6 +29,7 @@ async function run(): Promise<void> {
           uploadDetails.uuid,
           token,
           approvalNotes,
+          releaseNotes,
           srcPath
         )
       ) {

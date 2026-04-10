@@ -18,6 +18,8 @@ inputs:
     description: 'Notes for Mozilla reviewers, attached to the submitted version'
   src_path:
     description: 'path to src zip file for verification. To be used if your extension uses minification, or other build steps that make it difficult to read the code of the xpi.'
+  release_notes:
+    description: 'Release notes for the new version, attached to the submitted version'
 runs:
   using: 'node24'
   main: 'dist/index.js'
