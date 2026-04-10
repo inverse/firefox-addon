@@ -3,11 +3,7 @@ import axios from 'axios'
 import FormData from 'form-data'
 import {createReadStream} from 'fs'
 import {resolve} from 'path'
-import {
-  createVersion,
-  tryUpdateExtension,
-  uploadSource
-} from '../src/request'
+import {createVersion, tryUpdateExtension, uploadSource} from '../src/request'
 
 jest.mock('axios')
 jest.mock('fs', () => {
@@ -104,7 +100,10 @@ describe('request helpers', () => {
       getHeaders: ReturnType<typeof jest.fn>
     }
     expect(mockedCreateReadStream).toHaveBeenCalledWith(resolve('source.zip'))
-    expect(formDataInstance.append).toHaveBeenCalledWith('source', 'source-stream')
+    expect(formDataInstance.append).toHaveBeenCalledWith(
+      'source',
+      'source-stream'
+    )
     expect(mockedAxios.patch).toHaveBeenCalledWith(
       'https://addons.mozilla.org/api/v5/addons/addon/addon-guid/versions/7/',
       formDataInstance,
@@ -139,7 +138,10 @@ describe('request helpers', () => {
       append: ReturnType<typeof jest.fn>
       getHeaders: ReturnType<typeof jest.fn>
     }
-    expect(formDataInstance.append).toHaveBeenCalledWith('source', 'source-stream')
+    expect(formDataInstance.append).toHaveBeenCalledWith(
+      'source',
+      'source-stream'
+    )
     expect(mockedAxios.patch).toHaveBeenCalledWith(
       'https://addons.mozilla.org/api/v5/addons/addon/addon-guid/versions/9/',
       formDataInstance,
