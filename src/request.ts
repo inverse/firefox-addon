@@ -4,7 +4,11 @@ import {baseURL} from './util'
 import {resolve} from 'path'
 import {createReadStream} from 'fs'
 import axios from 'axios'
-import {CreatedVersionDetails, InitialUploadDetails, UploadDetails} from './types.d'
+import {
+  CreatedVersionDetails,
+  InitialUploadDetails,
+  UploadDetails
+} from './types.d'
 
 export async function createUpload(
   xpiPath: string,
