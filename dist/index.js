@@ -145,21 +145,47 @@ const form_data_1 = __importDefault(__nccwpck_require__(6454));
 const util_1 = __nccwpck_require__(4649);
 const path_1 = __nccwpck_require__(6928);
 const fs_1 = __nccwpck_require__(9896);
-const axios_1 = __importDefault(__nccwpck_require__(7269));
+const axios_1 = __importStar(__nccwpck_require__(7269));
+function throwAxiosError(operation, error) {
+    if ((0, axios_1.isAxiosError)(error)) {
+        const status = error.response?.status;
+        const statusText = error.response?.statusText;
+        const requestUrl = error.config?.url ?? 'unknown-url';
+        const statusDetails = status
+            ? `status=${status}${statusText ? ` ${statusText}` : ''}`
+            : 'no-status';
+        core.error(`${operation} failed (${statusDetails}) at ${requestUrl}`);
+        if (error.response?.data !== undefined) {
+            core.error(`${operation} error response: ${JSON.stringify(error.response.data)}`);
+        }
+        else {
+            core.error(`${operation} error message: ${error.message}`);
+        }
+    }
+    else {
+        core.error(`${operation} failed: ${String(error)}`);
+    }
+    throw error;
+}
 async function createUpload(xpiPath, token) {
     const url = `${util_1.baseURL}/addons/upload/`;
     const body = new form_data_1.default();
     core.debug(`Uploading ${xpiPath}`);
     body.append('upload', (0, fs_1.createReadStream)((0, path_1.resolve)(xpiPath)));
     body.append('channel', 'listed');
-    const response = await axios_1.default.post(url, body, {
-        headers: {
-            ...body.getHeaders(),
-            Authorization: `JWT ${token}`
-        }
-    });
-    core.debug(`Create upload response: ${JSON.stringify(response.data)}`);
-    return response.data;
+    try {
+        const response = await axios_1.default.post(url, body, {
+            headers: {
+                ...body.getHeaders(),
+                Authorization: `JWT ${token}`
+            }
+        });
+        core.debug(`Create upload response: ${JSON.stringify(response.data)}`);
+        return response.data;
+    }
+    catch (error) {
+        throwAxiosError('Create upload request', error);
+    }
 }
 async function tryUpdateExtension(guid, uuid, token, approvalNotes, releaseNotes, srcPath) {
     const details = await getUploadDetails(uuid, token);
@@ -189,37 +215,52 @@ async function createVersion(guid, uuid, token, approvalNotes, releaseNotes) {
         };
     }
     core.debug(`Creating version for extension ${guid} with ${uuid}`);
-    const response = await axios_1.default.post(url, body, {
-        headers: {
-            Authorization: `JWT ${token}`,
-            'Content-Type': 'application/json'
-        }
-    });
-    core.debug(`Create version response: ${JSON.stringify(response.data)}`);
-    return response.data;
+    try {
+        const response = await axios_1.default.post(url, body, {
+            headers: {
+                Authorization: `JWT ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        core.debug(`Create version response: ${JSON.stringify(response.data)}`);
+        return response.data;
+    }
+    catch (error) {
+        throwAxiosError('Create version request', error);
+    }
 }
 async function uploadSource(guid, versionId, srcPath, token) {
     const url = `${util_1.baseURL}/addons/addon/${guid}/versions/${versionId}/`;
     const body = new form_data_1.default();
     core.debug(`Uploading ${srcPath}`);
     body.append('source', (0, fs_1.createReadStream)((0, path_1.resolve)(srcPath)));
-    const response = await axios_1.default.patch(url, body, {
-        headers: {
-            ...body.getHeaders(),
-            Authorization: `JWT ${token}`
-        }
-    });
-    core.debug(`Upload source response: ${JSON.stringify(response.data)}`);
+    try {
+        const response = await axios_1.default.patch(url, body, {
+            headers: {
+                ...body.getHeaders(),
+                Authorization: `JWT ${token}`
+            }
+        });
+        core.debug(`Upload source response: ${JSON.stringify(response.data)}`);
+    }
+    catch (error) {
+        throwAxiosError('Upload source request', error);
+    }
 }
 async function getUploadDetails(uuid, token) {
     const url = `${util_1.baseURL}/addons/upload/${uuid}/`;
-    const response = await axios_1.default.get(url, {
-        headers: {
-            Authorization: `JWT ${token}`
-        }
-    });
-    core.debug(`Get upload details probe response: ${JSON.stringify(response.data)}`);
-    return response.data;
+    try {
+        const response = await axios_1.default.get(url, {
+            headers: {
+                Authorization: `JWT ${token}`
+            }
+        });
+        core.debug(`Get upload details probe response: ${JSON.stringify(response.data)}`);
+        return response.data;
+    }
+    catch (error) {
+        throwAxiosError('Get upload details request', error);
+    }
 }
 
 

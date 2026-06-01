@@ -3,12 +3,37 @@ import FormData from 'form-data'
 import {baseURL} from './util'
 import {resolve} from 'path'
 import {createReadStream} from 'fs'
-import axios from 'axios'
+import axios, {isAxiosError} from 'axios'
 import {
   CreatedVersionDetails,
   InitialUploadDetails,
   UploadDetails
 } from './types.d'
+
+function throwAxiosError(operation: string, error: unknown): never {
+  if (isAxiosError(error)) {
+    const status = error.response?.status
+    const statusText = error.response?.statusText
+    const requestUrl = error.config?.url ?? 'unknown-url'
+    const statusDetails = status
+      ? `status=${status}${statusText ? ` ${statusText}` : ''}`
+      : 'no-status'
+
+    core.error(`${operation} failed (${statusDetails}) at ${requestUrl}`)
+
+    if (error.response?.data !== undefined) {
+      core.error(
+        `${operation} error response: ${JSON.stringify(error.response.data)}`
+      )
+    } else {
+      core.error(`${operation} error message: ${error.message}`)
+    }
+  } else {
+    core.error(`${operation} failed: ${String(error)}`)
+  }
+
+  throw error
+}
 
 export async function createUpload(
   xpiPath: string,
@@ -21,14 +46,18 @@ export async function createUpload(
   body.append('upload', createReadStream(resolve(xpiPath)))
   body.append('channel', 'listed')
 
-  const response = await axios.post(url, body, {
-    headers: {
-      ...body.getHeaders(),
-      Authorization: `JWT ${token}`
-    }
-  })
-  core.debug(`Create upload response: ${JSON.stringify(response.data)}`)
-  return response.data
+  try {
+    const response = await axios.post(url, body, {
+      headers: {
+        ...body.getHeaders(),
+        Authorization: `JWT ${token}`
+      }
+    })
+    core.debug(`Create upload response: ${JSON.stringify(response.data)}`)
+    return response.data
+  } catch (error) {
+    throwAxiosError('Create upload request', error)
+  }
 }
 
 export async function tryUpdateExtension(
@@ -90,14 +119,18 @@ export async function createVersion(
   }
 
   core.debug(`Creating version for extension ${guid} with ${uuid}`)
-  const response = await axios.post(url, body, {
-    headers: {
-      Authorization: `JWT ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-  core.debug(`Create version response: ${JSON.stringify(response.data)}`)
-  return response.data
+  try {
+    const response = await axios.post(url, body, {
+      headers: {
+        Authorization: `JWT ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    core.debug(`Create version response: ${JSON.stringify(response.data)}`)
+    return response.data
+  } catch (error) {
+    throwAxiosError('Create version request', error)
+  }
 }
 
 export async function uploadSource(
@@ -112,13 +145,17 @@ export async function uploadSource(
   core.debug(`Uploading ${srcPath}`)
   body.append('source', createReadStream(resolve(srcPath)))
 
-  const response = await axios.patch(url, body, {
-    headers: {
-      ...body.getHeaders(),
-      Authorization: `JWT ${token}`
-    }
-  })
-  core.debug(`Upload source response: ${JSON.stringify(response.data)}`)
+  try {
+    const response = await axios.patch(url, body, {
+      headers: {
+        ...body.getHeaders(),
+        Authorization: `JWT ${token}`
+      }
+    })
+    core.debug(`Upload source response: ${JSON.stringify(response.data)}`)
+  } catch (error) {
+    throwAxiosError('Upload source request', error)
+  }
 }
 
 export async function getUploadDetails(
@@ -126,13 +163,17 @@ export async function getUploadDetails(
   token: string
 ): Promise<UploadDetails> {
   const url = `${baseURL}/addons/upload/${uuid}/`
-  const response = await axios.get(url, {
-    headers: {
-      Authorization: `JWT ${token}`
-    }
-  })
-  core.debug(
-    `Get upload details probe response: ${JSON.stringify(response.data)}`
-  )
-  return response.data
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `JWT ${token}`
+      }
+    })
+    core.debug(
+      `Get upload details probe response: ${JSON.stringify(response.data)}`
+    )
+    return response.data
+  } catch (error) {
+    throwAxiosError('Get upload details request', error)
+  }
 }
