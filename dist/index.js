@@ -195,10 +195,10 @@ async function tryUpdateExtension(guid, uuid, token, approvalNotes, releaseNotes
     if (!details.valid) {
         throw new Error('Extension validation failed');
     }
-    const versionDetails = await createVersion(guid, uuid, token, approvalNotes, releaseNotes);
     if (srcPath) {
-        await uploadSource(guid, versionDetails.id, srcPath, token);
+        await uploadSource(guid, uuid, srcPath, token);
     }
+    await createVersion(guid, uuid, token, approvalNotes, releaseNotes);
     return true;
 }
 async function createVersion(guid, uuid, token, approvalNotes, releaseNotes) {
@@ -229,13 +229,14 @@ async function createVersion(guid, uuid, token, approvalNotes, releaseNotes) {
         throwAxiosError('Create version request', error);
     }
 }
-async function uploadSource(guid, versionId, srcPath, token) {
-    const url = `${util_1.baseURL}/addons/addon/${guid}/versions/${versionId}/`;
+async function uploadSource(guid, uuid, srcPath, token) {
+    const url = `${util_1.baseURL}/addons/addon/${guid}/versions/`;
     const body = new form_data_1.default();
     core.debug(`Uploading ${srcPath}`);
     body.append('source', (0, fs_1.createReadStream)((0, path_1.resolve)(srcPath)));
+    body.append('upload', uuid);
     try {
-        const response = await axios_1.default.patch(url, body, {
+        const response = await axios_1.default.post(url, body, {
             headers: {
                 ...body.getHeaders(),
                 Authorization: `JWT ${token}`
