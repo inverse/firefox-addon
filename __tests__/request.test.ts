@@ -101,6 +101,10 @@ describe('request helpers', () => {
       'source',
       'source-stream'
     )
+    expect(formDataInstance.append).toHaveBeenCalledWith(
+      'upload',
+      'upload-uuid'
+    )
     expect(mockedAxios.post).toHaveBeenCalledWith(
       'https://addons.mozilla.org/api/v5/addons/addon/addon-guid/versions/',
       formDataInstance,
@@ -166,7 +170,7 @@ describe('request helpers', () => {
   test('uploadSource patches an existing version with multipart data', async () => {
     mockedAxios.post.mockResolvedValueOnce({data: {}})
 
-    await uploadSource('addon-guid', 'addon-uuid', 'source.zip', 'token')
+    await uploadSource('addon-guid', 'upload-uuid', 'source.zip', 'token')
 
     const formDataInstance = MockedFormData.mock.instances[0] as {
       append: ReturnType<typeof jest.fn>
@@ -175,6 +179,10 @@ describe('request helpers', () => {
     expect(formDataInstance.append).toHaveBeenCalledWith(
       'source',
       'source-stream'
+    )
+    expect(formDataInstance.append).toHaveBeenCalledWith(
+      'upload',
+      'upload-uuid'
     )
     expect(mockedAxios.post).toHaveBeenCalledWith(
       'https://addons.mozilla.org/api/v5/addons/addon/addon-guid/versions/',
