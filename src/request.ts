@@ -77,17 +77,11 @@ export async function tryUpdateExtension(
     throw new Error('Extension validation failed')
   }
 
-  const versionDetails = await createVersion(
-    guid,
-    uuid,
-    token,
-    approvalNotes,
-    releaseNotes
-  )
-
   if (srcPath) {
-    await uploadSource(guid, versionDetails.id, srcPath, token)
+    await uploadSource(guid, uuid, srcPath, token)
   }
+
+  await createVersion(guid, uuid, token, approvalNotes, releaseNotes)
 
   return true
 }
@@ -135,18 +129,19 @@ export async function createVersion(
 
 export async function uploadSource(
   guid: string,
-  versionId: number,
+  uuid: string,
   srcPath: string,
   token: string
 ): Promise<void> {
-  const url = `${baseURL}/addons/addon/${guid}/versions/${versionId}/`
+  const url = `${baseURL}/addons/addon/${guid}/versions/`
   const body = new FormData()
 
   core.debug(`Uploading ${srcPath}`)
   body.append('source', createReadStream(resolve(srcPath)))
+  body.append('upload', uuid)
 
   try {
-    const response = await axios.patch(url, body, {
+    const response = await axios.post(url, body, {
       headers: {
         ...body.getHeaders(),
         Authorization: `JWT ${token}`
